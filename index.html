@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -670,7 +670,7 @@
                 const savedDiary = localStorage.getItem('hybrid_diary_' + dateKey);
                 diary = savedDiary ? JSON.parse(savedDiary) : [];
                 const savedWater = localStorage.getItem('hybrid_water_' + dateKey);
-                waterIntake = savedWater ? parseInt(savedWater) : 0;
+                waterIntake = savedWater ? parseFloat(savedWater) : 0;
             }
         }
 
@@ -737,7 +737,14 @@
                 path.setAttribute('d', 'M12 21c-4.418 0-8-3.582-8-8 0-4.418 8-11 8-11s8 6.582 8 11c0 4.418-3.582 8-8 8z');
                 
                 drop.appendChild(path);
-                drop.onclick = () => addWater(i * mlPerDrop);
+                drop.onclick = () => {
+                    const newAmount = i * mlPerDrop;
+                    if (waterIntake === newAmount && i === 1) {
+                        addWater(0);
+                    } else {
+                        addWater(newAmount);
+                    }
+                };
                 waterDrops.appendChild(drop);
             }
 
@@ -754,7 +761,7 @@
 
         function addWater(amount) {
             waterIntake = amount;
-            localStorage.setItem('hybrid_water_' + getTodayKey(), waterIntake);
+            localStorage.setItem('hybrid_water_' + currentViewDate, waterIntake);
             updateUI();
             tg.HapticFeedback.impactOccurred('light');
         }
@@ -765,7 +772,7 @@
             document.getElementById(id + '-progress').style.width = Math.min(100, (cur / tar) * 100) + '%';
         }
 
-        function removeItem(idx) { diary.splice(idx, 1); localStorage.setItem('hybrid_diary_' + getTodayKey(), JSON.stringify(diary)); updateUI(); }
+        function removeItem(idx) { diary.splice(idx, 1); localStorage.setItem('hybrid_diary_' + currentViewDate, JSON.stringify(diary)); updateUI(); }
 
         function recalcManual() {
             const w = parseFloat(document.getElementById('m-weight').value) || 0;
@@ -778,7 +785,7 @@
             if (!name || isNaN(w) || isNaN(k)) { tg.showAlert('Укажите название, вес и калории'); return; }
             const p = parseFloat(document.getElementById('m-p').value) || 0, f = parseFloat(document.getElementById('m-f').value) || 0, c = parseFloat(document.getElementById('m-c').value) || 0;
             diary.unshift({ name, w, k: (k * w) / 100, p: (p * w) / 100, f: (f * w) / 100, c: (c * w) / 100 });
-            localStorage.setItem('hybrid_diary_' + getTodayKey(), JSON.stringify(diary));
+            localStorage.setItem('hybrid_diary_' + currentViewDate, JSON.stringify(diary));
             ['m-name', 'm-k', 'm-p', 'm-f', 'm-c'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('m-weight').value = 100;
             document.getElementById('m-total').innerText = '0 ккал';
