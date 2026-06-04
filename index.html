@@ -667,6 +667,25 @@
             const saved = localStorage.getItem('hybrid_user_profile');
             if (saved) {
                 userProfile = JSON.parse(saved);
+                
+                // Заполняем поля формы в профиле
+                if (document.getElementById('gender')) document.getElementById('gender').value = userProfile.gender;
+                if (document.getElementById('age')) document.getElementById('age').value = userProfile.age;
+                if (document.getElementById('weight')) document.getElementById('weight').value = userProfile.weight;
+                if (document.getElementById('height')) document.getElementById('height').value = userProfile.height;
+                if (document.getElementById('activity')) document.getElementById('activity').value = userProfile.activity;
+                
+                // Показываем блок с целями
+                const targetsEl = document.getElementById('profile-targets');
+                if (targetsEl) {
+                    targetsEl.classList.remove('hidden');
+                    document.getElementById('target-kcal').innerText = userProfile.targets.kcal;
+                    document.getElementById('target-protein').innerText = userProfile.targets.p;
+                    document.getElementById('target-fat').innerText = userProfile.targets.f;
+                    document.getElementById('target-carbs').innerText = userProfile.targets.c;
+                    document.getElementById('target-water').innerText = userProfile.targets.water;
+                }
+
                 const savedDiary = localStorage.getItem('hybrid_diary_' + dateKey);
                 diary = savedDiary ? JSON.parse(savedDiary) : [];
                 const savedWater = localStorage.getItem('hybrid_water_' + dateKey);
@@ -702,7 +721,13 @@
         function getTodayKey() { return new Date().toISOString().split('T')[0]; }
 
         function updateUI() {
-            if (!userProfile) return;
+            if (!userProfile) {
+                document.getElementById('calories-left').innerText = '—';
+                document.getElementById('calories-target').innerText = 'Заполни профиль';
+                document.getElementById('water-target').innerText = '—';
+                document.getElementById('water-status').innerText = 'Заполни профиль';
+                return;
+            }
             const targets = userProfile.targets;
             const cur = diary.reduce((acc, i) => { acc.k += i.k; acc.p += i.p; acc.f += i.f; acc.c += i.c; return acc; }, {k:0, p:0, f:0, c:0});
             document.getElementById('calories-target').innerText = targets.kcal;
