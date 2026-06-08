@@ -814,7 +814,7 @@
                 } else if (count == 6) {
                     meals = [{t:"Завтрак", c:breakfast[0]}, {t:"Перекус 1", c:snacks[0]}, {t:"Обед", c:lunch[0]}, {t:"Перекус 2", c:snacks[1]}, {t:"Ужин", c:dinner[0]}, {t:"Поздний ужин", c:snacks[2]}];
                 }
-                return { name: `Профессиональный план (${count} приемов)`, meals: meals };
+                return { name: `План питания  (${count} приемов)`, meals: meals };
             };
 
             if (!window.currentDietPlan || window.currentDietPlan.meals.length != window.mealsCount) {
