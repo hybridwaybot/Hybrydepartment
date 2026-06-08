@@ -1,16 +1,25 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Дневник питания</title>
+    <title>Дневник питания - Гибридный цех</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --color-dark-green: #14221b; --color-beige: #d9d2c5; }
+        :root { --color-dark-green: #14221b; --color-beige: #d9d2c5; --color-gold: #d4af37; }
         body { font-family: 'Inter', sans-serif; background-color: var(--color-dark-green); color: var(--color-beige); margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         h1, h2, h3 { font-family: 'Playfair Display', serif; }
+        
+        /* Стили для Премиум дизайна */
+        body.premium-mode { background: radial-gradient(circle at top, #1a2e24 0%, #0d1511 100%); }
+        .premium-mode .glass-card { background: rgba(212, 175, 55, 0.03); border: 1px solid rgba(212, 175, 55, 0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .premium-mode .btn-primary { background: linear-gradient(135deg, #d4af37 0%, #f9e498 100%); color: #14221b; }
+        .premium-mode .text-gold { color: var(--color-gold); }
+        .premium-mode .border-gold { border-color: rgba(212, 175, 55, 0.3); }
+        .premium-mode .progress-fill { background: linear-gradient(90deg, #d4af37, #f9e498); }
+
         .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; }
         .btn-primary { background-color: var(--color-beige); color: var(--color-dark-green); font-weight: 600; transition: all 0.2s ease; }
         .btn-primary:active { transform: scale(0.96); }
@@ -24,25 +33,76 @@
         .water-drop.filled { color: #4a9eff; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
         .calendar-day { padding: 12px 8px; text-align: center; border-radius: 12px; background: rgba(255, 255, 255, 0.05); cursor: pointer; transition: all 0.2s; position: relative; }
-        .calendar-day:hover { background: rgba(255, 255, 255, 0.1); }
-        .calendar-day.has-data::after { content: '●'; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); color: var(--color-beige); font-size: 8px; }
         .calendar-day.active { background: var(--color-beige); color: var(--color-dark-green); font-weight: bold; }
-        .achievement { animation: pulse 0.6s ease-out; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .premium-mode .calendar-day.active { background: var(--color-gold); color: #14221b; }
+        
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--color-dark-green); border: 1px solid rgba(217, 210, 197, 0.2); border-radius: 24px; padding: 24px; max-width: 90%; max-height: 85vh; overflow-y: auto; width: 100%; }
+        .premium-mode .modal-content { border-color: var(--color-gold); }
+
+        /* Стили для списка покупок */
+        .shop-category-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; opacity: 0.45; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+        .shop-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; }
+        .shop-item:last-child { border-bottom: none; }
+        .shop-checkbox { width: 20px; height: 20px; min-width: 20px; border-radius: 6px; border: 1.5px solid rgba(217,210,197,0.3); background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+        .shop-item.checked .shop-checkbox { background: var(--color-gold); border-color: var(--color-gold); }
+        .shop-item.checked .item-label { text-decoration: line-through; opacity: 0.3; }
+        .shop-item.checked .item-amount { opacity: 0.3; }
+        .item-label { flex: 1; font-size: 14px; transition: all 0.2s; }
+        .item-amount { font-size: 12px; font-weight: 700; color: var(--color-gold); white-space: nowrap; transition: all 0.2s; }
+        .shop-period-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; transition: all 0.2s; }
+        .shop-period-btn.active { background: rgba(212,175,55,0.15); border-color: rgba(212,175,55,0.4); color: var(--color-gold); }
+        .meals-count-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 700; transition: all 0.2s; }
+        .meals-count-btn.active { background: var(--color-beige); color: var(--color-dark-green); }
+        .premium-mode .meals-count-btn.active { background: var(--color-gold); color: #14221b; }
+        .shop-summary-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+        .shop-summary-row:last-child { border-bottom: none; }
+        .shop-progress-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body class="p-4">
-    <div id="sub-overlay" class="fixed inset-0 z-50 bg-[#14221b] flex flex-col items-center justify-center p-8 text-center hidden">
-        <h2 class="text-3xl mb-4 text-beige">Гибридный цех</h2>
-        <p class="mb-8 opacity-70 text-beige">Подпишитесь на канал для активации системы.</p>
-        <a href="https://t.me/hybriddepartment" target="_blank" class="btn-primary py-4 px-8 rounded-full w-full mb-4 text-center">Подписаться</a>
-        <button onclick="checkSubscription()" class="text-beige border border-beige/30 py-3 px-8 rounded-full w-full">Проверить подписку</button>
+    <!-- Overlay for Subscription -->
+    <div id="sub-overlay" class="fixed inset-0 z-[200] bg-[#14221b] flex flex-col items-center justify-center p-8 text-center hidden">
+        <div class="mb-6 w-20 h-20 rounded-full bg-gold/10 flex items-center justify-center border border-gold/30">
+            <svg class="w-10 h-10 text-gold" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </div>
+        <h2 class="text-3xl mb-4 text-beige font-bold">Гибридный цех</h2>
+        <p class="mb-8 opacity-70 text-beige">Для доступа к системе и премиум-функциям необходимо быть подписанным на наш канал.</p>
+        <a href="https://t.me/hybriddepartment" target="_blank" class="btn-primary py-4 px-8 rounded-full w-full mb-4 text-center block">Подписаться на канал</a>
+        <button onclick="checkSubscription(true)" class="text-beige border border-beige/30 py-3 px-8 rounded-full w-full">Я подписался, войти</button>
+    </div>
+
+    <!-- Recipe Modal -->
+    <div id="recipe-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="recipe-title" class="text-2xl font-bold"></h3>
+                <button onclick="closeRecipeModal()" class="text-2xl opacity-50">✕</button>
+            </div>
+            <div class="mb-4">
+                <label class="text-[10px] opacity-50 uppercase">Количество порций:</label>
+                <input type="number" id="recipe-portions" value="1" min="1" max="10" oninput="updateRecipeCalc()">
+            </div>
+            <div id="recipe-ingredients" class="mb-4 max-h-64 overflow-y-auto space-y-2"></div>
+            <div class="text-[10px] opacity-50 uppercase mb-2">Инструкция:</div>
+            <div id="recipe-description" class="text-sm opacity-80 mb-6 leading-relaxed"></div>
+            <button onclick="addRecipeToMenu()" class="btn-primary w-full py-4 rounded-xl uppercase text-[10px] font-bold tracking-widest">Добавить в дневник</button>
+        </div>
     </div>
 
     <div id="app-container" class="max-w-md mx-auto pb-24">
         <header class="flex justify-between items-center mb-8">
-            <div><h1 class="text-2xl tracking-wider uppercase">Гибридный цех</h1><p class="text-[10px] opacity-50 uppercase tracking-[0.2em]">Дневник питания</p></div>
-            <div id="user-avatar" class="w-10 h-10 rounded-full bg-beige/10 border border-beige/20 overflow-hidden"><img id="avatar-img" src="" class="w-full h-full object-cover hidden"></div>
+            <div>
+                <h1 class="text-2xl tracking-wider uppercase flex items-center gap-2">
+                    Гибридный цех
+                    <span id="premium-badge" class="hidden text-[8px] bg-gold/20 text-gold px-2 py-0.5 rounded-full border border-gold/30">PREMIUM</span>
+                </h1>
+                <p class="text-[10px] opacity-50 uppercase tracking-[0.2em]">Система управления питанием</p>
+            </div>
+            <div id="user-avatar" class="w-10 h-10 rounded-full bg-beige/10 border border-beige/20 overflow-hidden shadow-lg">
+                <img id="avatar-img" src="" class="w-full h-full object-cover hidden">
+            </div>
         </header>
 
         <!-- Dashboard -->
@@ -64,7 +124,6 @@
             <div class="glass-card p-6 mb-6">
                 <div class="flex justify-between items-center mb-4">
                     <div><p class="text-[10px] opacity-50 uppercase mb-1">Вода</p><p class="text-2xl font-bold"><span id="water-current">0</span>/<span id="water-target">2000</span> мл</p></div>
-                    <div id="water-status" class="text-right text-[10px] opacity-60"></div>
                 </div>
                 <div id="water-drops" class="flex justify-around gap-2"></div>
             </div>
@@ -114,20 +173,35 @@
                     <div><label class="text-[10px] opacity-50 block mb-1 uppercase tracking-wider">Вес (кг)</label><input type="number" id="weight" placeholder="75"></div>
                     <div><label class="text-[10px] opacity-50 block mb-1 uppercase tracking-wider">Рост (см)</label><input type="number" id="height" placeholder="180"></div>
                 </div>
-                <div><label class="text-[10px] opacity-50 block mb-1 uppercase tracking-wider">Активность</label><select id="activity"><option value="1.2">Минимальная</option><option value="1.375">Слабая</option><option value="1.55">Средняя</option><option value="1.725">Высокая</option><option value="1.9">Экстремальная</option></select></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-[10px] opacity-50 block mb-1 uppercase tracking-wider">Активность</label><select id="activity"><option value="1.2">Минимальная</option><option value="1.375">Слабая</option><option value="1.55">Средняя</option><option value="1.725">Высокая</option><option value="1.9">Экстремальная</option></select></div>
+                    <div><label class="text-[10px] opacity-50 block mb-1 uppercase tracking-wider">Цель</label><select id="goal"><option value="lose">Похудение</option><option value="keep">Сохранение</option><option value="gain">Набор массы</option></select></div>
+                </div>
                 <button onclick="saveProfile()" class="btn-primary w-full py-4 rounded-xl mt-4 uppercase text-[10px] font-bold tracking-widest">Сохранить данные</button>
+                
                 <div id="profile-targets" class="mt-6 pt-6 border-t border-white/10 space-y-3 hidden">
                     <p class="text-[10px] opacity-50 uppercase">Ваши цели:</p>
-                    <p class="text-sm"><span class="opacity-60">Калории:</span> <span id="target-kcal" class="font-bold">0</span> ккал</p>
-                    <p class="text-sm"><span class="opacity-60">Белки:</span> <span id="target-protein" class="font-bold">0</span>г</p>
-                    <p class="text-sm"><span class="opacity-60">Жиры:</span> <span id="target-fat" class="font-bold">0</span>г</p>
-                    <p class="text-sm"><span class="opacity-60">Углеводы:</span> <span id="target-carbs" class="font-bold">0</span>г</p>
-                    <p class="text-sm"><span class="opacity-60">Вода:</span> <span id="target-water" class="font-bold">0</span> мл</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <p class="text-sm"><span class="opacity-60">Калории:</span> <span id="target-kcal" class="font-bold">0</span> ккал</p>
+                        <p class="text-sm"><span class="opacity-60">Вода:</span> <span id="target-water" class="font-bold">0</span> мл</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 border-t border-white/5 pt-2">
+                        <p class="text-[11px]"><span class="opacity-60">Б:</span> <span id="target-protein" class="font-bold">0</span>г</p>
+                        <p class="text-[11px]"><span class="opacity-60">Ж:</span> <span id="target-fat" class="font-bold">0</span>г</p>
+                        <p class="text-[11px]"><span class="opacity-60">У:</span> <span id="target-carbs" class="font-bold">0</span>г</p>
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-white/10">
+                    <button onclick="checkSubscription(true)" class="w-full py-3 rounded-xl border border-gold/30 text-gold text-[10px] uppercase font-bold tracking-widest flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                        Проверить подписку / Обновить Premium
+                    </button>
                 </div>
             </div>
         </section>
 
-        <!-- Statistics -->
+        <!-- Stats -->
         <section id="stats-view" class="tab-content">
             <h2 class="text-3xl mb-6">Статистика</h2>
             <div id="stats-container"></div>
@@ -135,7 +209,7 @@
 
         <!-- Diets -->
         <section id="diets-view" class="tab-content">
-            <h2 class="text-3xl mb-6">Примеры диет</h2>
+            <h2 class="text-3xl mb-6">Диета</h2>
             <div id="diets-container"></div>
         </section>
 
@@ -145,26 +219,154 @@
             <div id="analytics-container"></div>
         </section>
 
-        <nav class="fixed bottom-6 left-4 right-4 h-20 glass-card flex items-center justify-around px-4">
-            <button onclick="showTab('dashboard')" class="nav-btn flex flex-col items-center transition-all" id="nav-dashboard"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg><span class="text-[9px] uppercase mt-1 font-bold">Дневник</span></button>
-            <button onclick="showTab('stats')" class="nav-btn flex flex-col items-center opacity-40" id="nav-stats"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="text-[9px] uppercase mt-1 font-bold">Статистика</span></button>
-            <button onclick="showTab('diets')" class="nav-btn flex flex-col items-center opacity-40" id="nav-diets"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg><span class="text-[9px] uppercase mt-1 font-bold">Диеты</span></button>
-            <button onclick="showTab('analytics')" class="nav-btn flex flex-col items-center opacity-40" id="nav-analytics"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span class="text-[9px] uppercase mt-1 font-bold">Аналитика</span></button>
-            <button onclick="showTab('profile')" class="nav-btn flex flex-col items-center opacity-40" id="nav-profile"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg><span class="text-[9px] uppercase mt-1 font-bold">Профиль</span></button>
+        <!-- Shopping List -->
+        <section id="shop-view" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl">Список</h2>
+                <button onclick="clearCheckedItems()" class="text-[10px] uppercase opacity-40 border border-white/10 px-3 py-1.5 rounded-lg font-bold tracking-wider">Очистить</button>
+            </div>
+
+            <!-- Настройки плана -->
+            <div class="glass-card p-5 mb-4">
+                <p class="text-[10px] opacity-50 uppercase tracking-wider mb-3">Приёмов пищи в день</p>
+                <div class="flex gap-2 mb-4" id="shop-meals-btns">
+                    <button onclick="setShopMeals(3)" class="meals-count-btn" id="shop-mc-3">3</button>
+                    <button onclick="setShopMeals(4)" class="meals-count-btn" id="shop-mc-4">4</button>
+                    <button onclick="setShopMeals(5)" class="meals-count-btn" id="shop-mc-5">5</button>
+                    <button onclick="setShopMeals(6)" class="meals-count-btn" id="shop-mc-6">6</button>
+                </div>
+                <p class="text-[10px] opacity-50 uppercase tracking-wider mb-3">Период</p>
+                <div class="flex gap-2">
+                    <button onclick="setShopPeriodNew('day')" class="shop-period-btn" id="shop-p-day">На день</button>
+                    <button onclick="setShopPeriodNew('week')" class="shop-period-btn" id="shop-p-week">На неделю</button>
+                </div>
+            </div>
+
+            <!-- Прогресс -->
+            <div class="glass-card p-5 mb-4" id="shop-progress-card">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-[10px] opacity-50 uppercase tracking-wider">Куплено</p>
+                    <p class="text-[10px] font-bold" id="shop-progress-text">0 / 0</p>
+                </div>
+                <div class="progress-bar"><div id="shop-progress-fill" class="progress-fill" style="width:0%"></div></div>
+            </div>
+
+            <!-- Список продуктов -->
+            <div id="shop-list-container"></div>
+        </section>
+
+        <nav class="fixed bottom-6 left-4 right-4 h-20 glass-card flex items-center justify-around px-2 z-50">
+            <button onclick="showTab('dashboard')" class="nav-btn flex flex-col items-center transition-all px-1" id="nav-dashboard">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span class="text-[8px] uppercase mt-1 font-bold">Дневник</span>
+            </button>
+            <button onclick="showTab('stats')" class="nav-btn flex flex-col items-center opacity-40 px-1" id="nav-stats">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span class="text-[8px] uppercase mt-1 font-bold">Календарь</span>
+            </button>
+            <button onclick="showTab('diets')" class="nav-btn flex flex-col items-center opacity-40 px-1" id="nav-diets">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                <span class="text-[8px] uppercase mt-1 font-bold">Диета</span>
+            </button>
+            <button onclick="showTab('shop')" class="nav-btn flex flex-col items-center opacity-40 px-1" id="nav-shop">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <span class="text-[8px] uppercase mt-1 font-bold">Список</span>
+            </button>
+            <button onclick="showTab('analytics')" class="nav-btn flex flex-col items-center opacity-40 px-1" id="nav-analytics">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                <span class="text-[8px] uppercase mt-1 font-bold">Анализ</span>
+            </button>
+            <button onclick="showTab('profile')" class="nav-btn flex flex-col items-center opacity-40 px-1" id="nav-profile">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                <span class="text-[8px] uppercase mt-1 font-bold">Профиль</span>
+            </button>
         </nav>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        let userProfile = null, diary = [], waterIntake = 0, currentViewDate = null;
+        let userProfile = null, diary = [], waterIntake = 0, currentViewDate = null, currentRecipe = null;
         const BOT_TOKEN = '8821569325:AAEz0hGIVdG1Ti3lCNuR9twOxre_uDqFHRI';
         const CHANNEL_ID = '@hybriddepartment';
+        
+        window.shopPeriod = 'day'; 
+        window.mealsCount = 4;
+        window.analyticsPeriod = 'day';
+        window.altIdx = {};
+        // Список покупок: отдельное состояние
+        window.shopMealsCount = 4;
+        window.shopPeriodNew = 'day';
+        window.shopChecked = {}; // ключ: название продукта, значение: true/false
 
-        // 300+ продуктов в базе
+        const RECIPES = {
+            "Овсяная каша с ягодами и миндалем": {
+                "r": "Залейте овсяные хлопья долгого варения водой или нежирным молоком (1:2). Варите на медленном огне 10-15 минут. В готовую кашу добавьте ягоды и измельченный миндаль.",
+                "i": {"Овсянка": 50, "Молоко 2.5%": 150, "Миндаль": 10, "Голубика": 30}
+            },
+            "Скрэмбл с авокадо и цельнозерновым тостом": {
+                "r": "Взбейте 2 яйца. Обжарьте на сковороде с каплей оливкового масла 2-3 минуты. Подавайте на цельнозерновом тосте с 1/4 авокадо.",
+                "i": {"Яйцо куриное (1 шт)": 110, "Хлеб ржаной": 40, "Авокадо": 50, "Масло подсолнечное": 5}
+            },
+            "Творог 5% с грецким орехом и семенами чиа": {
+                "r": "Смешайте творог с ложкой йогурта, добавьте грецкие орехи и семена чиа. Дайте настояться 5 минут.",
+                "i": {"Творог 5%": 200, "Грецкий орех": 15, "Семена чиа": 5}
+            },
+            "Стейк из индейки с брокколи на пару": {
+                "r": "Филе индейки обжарьте на сковороде-гриль по 5 минут с каждой стороны. Брокколи приготовьте на пару 7 минут.",
+                "i": {"Индейка филе": 200, "Брокколи": 150, "Масло подсолнечное": 5}
+            },
+            "Запеченный минтай с диким рисом": {
+                "r": "Рис отварите до готовности. Филе минтая запекайте в фольге при 180 градусах 20 минут.",
+                "i": {"Минтай филе": 200, "Дикий рис": 60, "Масло подсолнечное": 5}
+            },
+            "Салат с тунцом и нутом": {
+                "r": "Смешайте тунец, отварной нут, огурец и шпинат. Заправьте оливковым маслом и лимонным соком.",
+                "i": {"Тунец консервированный": 100, "Нут отварной": 100, "Огурец": 100, "Масло подсолнечное": 5}
+            },
+            "Куриное филе с киноа и овощами": {
+                "r": "Киноа отварите. Куриное филе потушите с болгарским перцем и кабачком. Смешайте с киноа.",
+                "i": {"Куриная грудка (сырая)": 150, "Киноа": 50, "Болгарский перец": 50, "Масло подсолнечное": 5}
+            },
+            "Греческий йогурт с семенами льна": {
+                "r": "В натуральный йогурт добавьте семена льна и корицу. Перемешайте.",
+                "i": {"Йогурт натуральный": 200, "Семена льна": 10}
+            },
+            "Зеленый салат с яйцом пашот": {
+                "r": "Сварите яйцо пашот. Выложите на смесь салатных листьев с огурцом, заправьте маслом.",
+                "i": {"Яйцо куриное (1 шт)": 55, "Салат листовой": 50, "Огурец": 100, "Масло подсолнечное": 5}
+            },
+            "Протеиновый смузи с бананом": {
+                "r": "В блендере смешайте протеин, половину банана и 200 мл молока. Взбейте.",
+                "i": {"Протеин (порция 30г)": 30, "Банан": 60, "Молоко 2.5%": 100}
+            },
+            "Запеченное яблоко с творогом": {
+                "r": "У яблока удалите сердцевину, наполните творогом. Запекайте в духовке 10 минут.",
+                "i": {"Яблоко": 150, "Творог 5%": 50}
+            },
+            "Горсть орехов (миндаль/фундук)": {
+                "r": "Употребляйте как полезный перекус. Орехи богаты белком и полезными жирами.",
+                "i": {"Миндаль": 30}
+            }
+        };
+
+        const ALTERNATIVES = {
+            "Овсяная каша с ягодами и миндалем": ["Скрэмбл с авокадо и цельнозерновым тостом", "Творог 5% с грецким орехом и семенами чиа", "Греческий йогурт с семенами льна"],
+            "Скрэмбл с авокадо и цельнозерновым тостом": ["Овсяная каша с ягодами и миндалем", "Зеленый салат с яйцом пашот", "Творог 5% с грецким орехом и семенами чиа"],
+            "Творог 5% с грецким орехом и семенами чиа": ["Греческий йогурт с семенами льна", "Овсяная каша с ягодами и миндалем", "Запеченное яблоко с творогом"],
+            "Стейк из индейки с брокколи на пару": ["Запеченный минтай с диким рисом", "Салат с тунцом и нутом", "Куриное филе с киноа и овощами"],
+            "Запеченный минтай с диким рисом": ["Стейк из индейки с брокколи на пару", "Куриное филе с киноа и овощами", "Салат с тунцом и нутом"],
+            "Салат с тунцом и нутом": ["Запеченный минтай с диким рисом", "Стейк из индейки с брокколи на пару", "Куриное филе с киноа и овощами"],
+            "Куриное филе с киноа и овощами": ["Стейк из индейки с брокколи на пару", "Запеченный минтай с диким рисом", "Салат с тунцом и нутом"],
+            "Греческий йогурт с семенами льна": ["Протеиновый смузи с бананом", "Запеченное яблоко с творогом", "Горсть орехов (миндаль/фундук)"],
+            "Протеиновый смузи с бананом": ["Греческий йогурт с семенами льна", "Горсть орехов (миндаль/фундук)", "Запеченное яблоко с творогом"],
+            "Запеченное яблоко с творогом": ["Греческий йогурт с семенами льна", "Протеиновый смузи с бананом", "Зеленый салат с яйцом пашот"],
+            "Горсть орехов (миндаль/фундук)": ["Протеиновый смузи с бананом", "Греческий йогурт с семенами льна", "Запеченное яблоко с творогом"],
+            "Зеленый салат с яйцом пашот": ["Скрэмбл с авокадо и цельнозерновым тостом", "Овсяная каша с ягодами и миндалем", "Творог 5% с грецким орехом и семенами чиа"]
+        };
+
         const FOOD_DB = [
-            // Мясо и птица (20+)
-            {n:"Куриная грудка (отварная)", k:165, p:31, f:3.6, c:0},
+             {n:"Куриная грудка (отварная)", k:165, p:31, f:3.6, c:0},
             {n:"Куриная грудка (жареная)", k:210, p:28, f:10, c:0},
             {n:"Куриное бедро", k:209, p:19, f:15, c:0},
             {n:"Говядина отварная", k:254, p:25, f:17, c:0},
@@ -185,7 +387,7 @@
             {n:"Почки говяжьи", k:66, p:13, f:1, c:0},
             {n:"Сердце говяжье", k:96, p:15, f:4, c:0},
             
-            // Рыба и морепродукты (25+)
+            // Рыба и морепрохдукты (25+)
             {n:"Лосось (семга)", k:208, p:20, f:13, c:0},
             {n:"Форель", k:189, p:19, f:12, c:0},
             {n:"Тунец консерв.", k:116, p:26, f:1, c:0},
@@ -211,10 +413,6 @@
             {n:"Филе трески", k:82, p:18, f:0.7, c:0},
             {n:"Стейк лосося", k:280, p:25, f:20, c:0},
             {n:"Суши (6 шт)", k:140, p:5, f:3, c:24},
-            {n:"Яйцо вареное", k:140, p:11.8, f:10, c:0.7},
-            {n:"Омлет", k:140, p:11.8, f:10, c:0.7},
-            {n:"Омлет с молоком 2,5%", k:115, p:10.1, f:8.2, c:1.8},
-            {n:"Яичница глазунья", k:190, p:11, f:15, c:0.7},
             
             // Молочные продукты (30+)
             {n:"Творог 5%", k:121, p:17, f:5, c:3},
@@ -247,6 +445,11 @@
             {n:"Адыгейский сыр", k:240, p:20, f:18, c:0},
             {n:"Сыр Косичка", k:280, p:28, f:17, c:0},
             {n:"Кумыс", k:41, p:2, f:1, c:5},
+            {n:"Яйцо вареное", k:140, p:11.8, f:10, c:0.7},
+            {n:"Омлет", k:140, p:11.8, f:10, c:0.7},
+            {n:"Омлет с молоком 2,5%", k:115, p:10.1, f:8.2, c:1.8},
+            {n:"Яичница глазунья", k:190, p:11, f:15, c:0.7},
+            
             
             // Зерновые и хлеб (25+)
             {n:"Рис отварной", k:130, p:2.7, f:0.3, c:28},
@@ -472,6 +675,48 @@
             updateUI();
         }
 
+        async function checkSubscription(force = false) {
+            const userId = tg.initDataUnsafe?.user?.id;
+            if (!userId) { if(force) tg.showAlert("Ошибка идентификации Telegram"); return; }
+            
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${CHANNEL_ID}&user_id=${userId}`);
+                const data = await res.json();
+                const isSubscribed = data.ok && ['member', 'administrator', 'creator'].includes(data.result.status);
+                
+                if (isSubscribed) {
+                    document.getElementById('sub-overlay').classList.add('hidden');
+                    enablePremium();
+                    if(force) tg.showAlert("Подписка подтверждена! Premium дизайн активирован.");
+                } else {
+                    document.getElementById('sub-overlay').classList.remove('hidden');
+                    disablePremium();
+                }
+            } catch (e) { 
+                console.error(e);
+                // В случае ошибки API (например, блокировка в РФ), даем доступ если это не принудительная проверка
+                if(!force) document.getElementById('sub-overlay').classList.add('hidden');
+            }
+        }
+
+        function enablePremium() {
+            document.body.classList.add('premium-mode');
+            document.getElementById('premium-badge').classList.remove('hidden');
+            if(userProfile) {
+                userProfile.isPremium = true;
+                localStorage.setItem('hybrid_user_profile', JSON.stringify(userProfile));
+            }
+        }
+
+        function disablePremium() {
+            document.body.classList.remove('premium-mode');
+            document.getElementById('premium-badge').classList.add('hidden');
+            if(userProfile) {
+                userProfile.isPremium = false;
+                localStorage.setItem('hybrid_user_profile', JSON.stringify(userProfile));
+            }
+        }
+
         function populateSuggestions() {
             const list = document.getElementById('food-suggestions');
             FOOD_DB.forEach(item => {
@@ -498,340 +743,560 @@
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.add('opacity-40'));
             const nav = document.getElementById('nav-' + (tabId === 'manual' ? 'dashboard' : tabId));
             if(nav) nav.classList.remove('opacity-40');
-            
             if(tabId === 'stats') renderCalendar();
             if(tabId === 'diets') renderDiets();
             if(tabId === 'analytics') renderAnalytics();
+            if(tabId === 'shop') renderShoppingList();
         }
 
         function renderCalendar() {
             const container = document.getElementById('stats-container');
             container.innerHTML = '';
-            
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
+            if (!window.calendarDate) window.calendarDate = new Date();
+            const year = window.calendarDate.getFullYear();
+            const month = window.calendarDate.getMonth();
             const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
             
             const header = document.createElement('div');
             header.className = 'flex justify-between items-center mb-4';
-            header.innerHTML = `<h3 class="text-xl">${monthNames[month]} ${year}</h3>`;
+            header.innerHTML = `<button onclick="changeMonth(-1)" class="p-2 opacity-60">←</button><h3 class="text-xl">${monthNames[month]} ${year}</h3><button onclick="changeMonth(1)" class="p-2 opacity-60">→</button>`;
             container.appendChild(header);
-
+            
             const grid = document.createElement('div');
             grid.className = 'calendar-grid glass-card p-4';
-            
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const firstDay = new Date(year, month, 1).getDay();
             const offset = firstDay === 0 ? 6 : firstDay - 1;
-
-            const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-            weekDays.forEach(d => {
+            
+            ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].forEach(d => {
                 const dayLabel = document.createElement('div');
                 dayLabel.className = 'text-[10px] opacity-40 text-center pb-2';
                 dayLabel.innerText = d;
                 grid.appendChild(dayLabel);
             });
-
-            for(let i=0; i<offset; i++) {
-                grid.appendChild(document.createElement('div'));
-            }
-
+            
+            for(let i=0; i<offset; i++) grid.appendChild(document.createElement('div'));
+            
             for(let d=1; d<=daysInMonth; d++) {
                 const dateKey = `${year}-${String(month+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const hasData = localStorage.getItem('hybrid_diary_' + dateKey);
-                const isToday = dateKey === getTodayKey();
                 const isActive = dateKey === currentViewDate;
-                
                 const dayEl = document.createElement('div');
                 dayEl.className = `calendar-day ${isActive ? 'active' : ''} ${hasData ? 'has-data' : ''}`;
                 dayEl.innerText = d;
-                dayEl.onclick = () => {
-                    currentViewDate = dateKey;
-                    loadUserData(dateKey);
-                    showTab('dashboard');
-                    updateUI();
-                };
+                dayEl.onclick = () => { currentViewDate = dateKey; loadUserData(dateKey); showTab('dashboard'); updateUI(); };
                 grid.appendChild(dayEl);
             }
             container.appendChild(grid);
         }
 
+        function changeMonth(delta) { window.calendarDate.setMonth(window.calendarDate.getMonth() + delta); renderCalendar(); }
+
         function renderDiets() {
             const container = document.getElementById('diets-container');
             const targetKcal = userProfile?.targets?.kcal || 2000;
-            container.innerHTML = `<div class="p-4 bg-beige/10 rounded-xl mb-4"><p class="text-xs opacity-70">Планы подобраны под вашу цель: <b>${targetKcal} ккал</b></p></div>`;
+            const goal = userProfile?.goal || 'keep';
+            let goalText = goal === 'lose' ? "Похудение" : (goal === 'gain' ? "Набор массы" : "Поддержание");
             
-            const dietPlans = [
-                {
-                    name: "Сбалансированный рацион",
-                    desc: "30% Белки, 30% Жиры, 40% Углеводы",
-                    meals: [
-                        { t: "Завтрак", c: "Овсянка на молоке с ягодами", k: Math.round(targetKcal * 0.25) },
-                        { t: "Обед", c: "Куриная грудка, бурый рис, салат", k: Math.round(targetKcal * 0.35) },
-                        { t: "Ужин", c: "Лосось на пару и брокколи", k: Math.round(targetKcal * 0.30) },
-                        { t: "Перекус", c: "Горсть орехов или яблоко", k: Math.round(targetKcal * 0.10) }
-                    ]
-                },
-                {
-                    name: "Низкоуглеводный (Кето-лайт)",
-                    desc: "40% Белки, 50% Жиры, 10% Углеводы",
-                    meals: [
-                        { t: "Завтрак", c: "Яичница из 3 яиц с авокадо", k: Math.round(targetKcal * 0.30) },
-                        { t: "Обед", c: "Стейк из говядины и зеленый салат", k: Math.round(targetKcal * 0.35) },
-                        { t: "Ужин", c: "Запеченная скумбрия и спаржа", k: Math.round(targetKcal * 0.25) },
-                        { t: "Перекус", c: "Творог 9% или сыр", k: Math.round(targetKcal * 0.10) }
-                    ]
-                }
-            ];
+            const generatePlan = (count) => {
+                const breakfast = ["Овсяная каша с ягодами и миндалем", "Скрэмбл с авокадо и цельнозерновым тостом", "Творог 5% с грецким орехом и семенами чиа"];
+                const lunch = ["Стейк из индейки с брокколи на пару", "Запеченный минтай с диким рисом", "Куриное филе с киноа и овощами"];
+                const dinner = ["Салат с тунцом и нутом", "Зеленый салат с яйцом пашот", "Стейк из индейки с брокколи на пару"];
+                const snacks = ["Греческий йогурт с семенами льна", "Протеиновый смузи с бананом", "Запеченное яблоко с творогом", "Горсть орехов (миндаль/фундук)"];
 
-            dietPlans.forEach(plan => {
-                const card = document.createElement('div');
-                card.className = 'glass-card p-5 mb-4';
-                let mealsHtml = '';
-                plan.meals.forEach(m => {
-                    mealsHtml += `<div class="flex justify-between text-xs border-b border-white/5 py-2"><span><b>${m.t}:</b> ${m.c}</span><span class="opacity-60">${m.k} ккал</span></div>`;
-                });
-                card.innerHTML = `<h3 class="text-lg mb-1">${plan.name}</h3><p class="text-[10px] opacity-50 uppercase mb-4">${plan.desc}</p>${mealsHtml}`;
-                container.appendChild(card);
+                let meals = [];
+                if (count == 3) {
+                    meals = [{t:"Завтрак", c:breakfast[0]}, {t:"Обед", c:lunch[0]}, {t:"Ужин", c:dinner[0]}];
+                } else if (count == 4) {
+                    meals = [{t:"Завтрак", c:breakfast[0]}, {t:"Обед", c:lunch[0]}, {t:"Перекус", c:snacks[0]}, {t:"Ужин", c:dinner[0]}];
+                } else if (count == 5) {
+                    meals = [{t:"Завтрак", c:breakfast[0]}, {t:"Перекус 1", c:snacks[0]}, {t:"Обед", c:lunch[0]}, {t:"Перекус 2", c:snacks[1]}, {t:"Ужин", c:dinner[0]}];
+                } else if (count == 6) {
+                    meals = [{t:"Завтрак", c:breakfast[0]}, {t:"Перекус 1", c:snacks[0]}, {t:"Обед", c:lunch[0]}, {t:"Перекус 2", c:snacks[1]}, {t:"Ужин", c:dinner[0]}, {t:"Поздний ужин", c:snacks[2]}];
+                }
+                return { name: `Профессиональный план (${count} приемов)`, meals: meals };
+            };
+
+            if (!window.currentDietPlan || window.currentDietPlan.meals.length != window.mealsCount) {
+                window.currentDietPlan = generatePlan(window.mealsCount);
+                window.altIdx = {};
+            } else {
+                // Синхронизируем план с текущим количеством приемов пищи на случай сбоя
+                if (window.currentDietPlan.meals.length != window.mealsCount) {
+                    window.currentDietPlan = generatePlan(window.mealsCount);
+                }
+            }
+            
+            const plan = window.currentDietPlan;
+            container.innerHTML = `
+                <div class="p-4 bg-white/5 rounded-xl mb-4 border border-white/10">
+                    <p class="text-xs opacity-70 mb-3">Цель: <b>${goalText}</b>. План: <b>${targetKcal} ккал</b></p>
+                    <label class="text-[10px] opacity-50 uppercase block mb-2">Количество приемов пищи:</label>
+                    <div class="flex gap-1">
+                        ${[3,4,5,6].map(n => `<button onclick="setMealsCount(${n})" class="flex-1 py-2 rounded-lg border border-white/10 text-[10px] font-bold ${window.mealsCount === n ? 'bg-beige text-dark-green' : ''}">${n}</button>`).join('')}
+                    </div>
+                </div>`;
+            
+            const card = document.createElement('div');
+            card.className = 'glass-card p-5 mb-4';
+            let mealsHtml = '';
+            plan.meals.forEach((m, idx) => {
+                mealsHtml += `<div class="border-b border-white/5 py-3 last:border-0">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] opacity-40 uppercase">${m.t}</span>
+                        <div class="flex gap-2">
+                            <button onclick="openRecipeModal('${m.c}', ${idx})" class="text-[9px] text-amber-200 underline">Рецепт</button>
+                            <button onclick="replaceWithAlternative('${m.c}', ${idx})" class="text-[9px] text-amber-200 underline">Заменить</button>
+                        </div>
+                    </div>
+                    <p class="text-sm font-semibold">${m.c}</p>
+                </div>`;
             });
+            
+            card.innerHTML = `<h3 class="text-xl mb-1">${plan.name}</h3>
+                <div class="mb-5">${mealsHtml}</div>
+                <button onclick="goToShopFromDiets()" class="w-full py-3 border border-beige/20 rounded-xl text-[10px] uppercase font-bold tracking-widest flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    Список покупок
+                </button>`;
+            container.appendChild(card);
         }
+
+        function setMealsCount(n) {
+            window.mealsCount = n;
+            // Синхронизируем список покупок с планом диеты
+            window.shopMealsCount = n;
+            window.shopChecked = {};
+            window.currentDietPlan = null;
+            renderDiets();
+        }
+
+        function goToShopFromDiets() {
+            // Передаём текущее количество приёмов в список
+            window.shopMealsCount = window.mealsCount;
+            window.shopChecked = {};
+            showTab('shop');
+        }
+
+        function replaceWithAlternative(name, idx) {
+            const alts = ALTERNATIVES[name];
+            if (!alts) return;
+            if (window.altIdx[idx] === undefined) window.altIdx[idx] = 0;
+            const nextAlt = alts[window.altIdx[idx] % alts.length];
+            window.altIdx[idx]++;
+            window.currentDietPlan.meals[idx].c = nextAlt;
+            renderDiets();
+            tg.showAlert('Вариант заменен на: ' + nextAlt);
+        }
+
+        function openRecipeModal(name) {
+            const recipe = RECIPES[name];
+            if (!recipe) { tg.showAlert("Рецепт скоро будет добавлен!"); return; }
+            currentRecipe = { name, recipe };
+            document.getElementById('recipe-title').innerText = name;
+            document.getElementById('recipe-portions').value = 1;
+            document.getElementById('recipe-description').innerText = recipe.r;
+            updateRecipeCalc();
+            document.getElementById('recipe-modal').classList.add('active');
+        }
+
+        function updateRecipeCalc() {
+            const portions = parseInt(document.getElementById('recipe-portions').value) || 1;
+            const recipe = currentRecipe.recipe;
+            let ingHtml = '';
+            for (let ing in recipe.i) {
+                const amount = recipe.i[ing] * portions;
+                ingHtml += `<div class="py-2 border-b border-white/5 flex justify-between items-center"><span class="text-sm">${ing}</span> <span class="font-bold text-gold">${Math.round(amount * 10) / 10}г</span></div>`;
+            }
+            document.getElementById('recipe-ingredients').innerHTML = ingHtml;
+        }
+
+        function addRecipeToMenu() {
+            const portions = parseInt(document.getElementById('recipe-portions').value) || 1;
+            const recipe = currentRecipe.recipe;
+            let totalK = 0, totalP = 0, totalF = 0, totalC = 0;
+            for (let ing in recipe.i) {
+                const food = FOOD_DB.find(f => f.n === ing);
+                if (food) {
+                    const amount = recipe.i[ing] * portions;
+                    totalK += (food.k * amount) / 100;
+                    totalP += (food.p * amount) / 100;
+                    totalF += (food.f * amount) / 100;
+                    totalC += (food.c * amount) / 100;
+                }
+            }
+            diary.unshift({ name: currentRecipe.name + ` (${portions} порц.)`, w: 100, k: totalK, p: totalP, f: totalF, c: totalC });
+            localStorage.setItem('hybrid_diary_' + currentViewDate, JSON.stringify(diary));
+            closeRecipeModal();
+            showTab('dashboard');
+            updateUI();
+            tg.showAlert('✅ Блюдо добавлено в дневник!');
+        }
+
+        function closeRecipeModal() { document.getElementById('recipe-modal').classList.remove('active'); }
+
+        function setAnalyticsPeriod(p) { window.analyticsPeriod = p; renderAnalytics(); }
 
         function renderAnalytics() {
             const container = document.getElementById('analytics-container');
-            if (!userProfile) {
-                container.innerHTML = '<p class="text-center opacity-50">Заполните профиль для просмотра аналитики</p>';
-                return;
-            }
-
+            if (!userProfile) { container.innerHTML = '<p class="text-center opacity-50">Заполните профиль</p>'; return; }
             const targets = userProfile.targets;
-            const cur = diary.reduce((acc, i) => { acc.k += i.k; acc.p += i.p; acc.f += i.f; acc.c += i.c; return acc; }, {k:0, p:0, f:0, c:0});
-            
-            let html = '<div class="space-y-4">';
-            
-            // Калории
-            const caloriePercent = Math.round((cur.k / targets.kcal) * 100);
-            html += `<div class="glass-card p-4"><p class="text-sm mb-2"><span class="opacity-60">Калории:</span> <span class="font-bold">${Math.round(cur.k)}/${targets.kcal} ккал (${caloriePercent}%)</span></p>`;
-            if (caloriePercent >= 100) {
-                html += '<p class="text-xs text-green-400">✓ Норма достигнута! Отличная работа!</p>';
-            } else if (caloriePercent >= 80) {
-                html += '<p class="text-xs opacity-70">Осталось ' + Math.round(targets.kcal - cur.k) + ' ккал</p>';
+            let days = window.analyticsPeriod === 'week' ? 7 : (window.analyticsPeriod === 'month' ? 30 : 1);
+            let history = [];
+            for (let i = 0; i < days; i++) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const data = localStorage.getItem('hybrid_diary_' + key);
+                if (data) history.push(...JSON.parse(data));
             }
-            html += '</div>';
+            const cur = history.reduce((acc, i) => { acc.k += i.k; acc.p += i.p; acc.f += i.f; acc.c += i.c; return acc; }, {k:0, p:0, f:0, c:0});
+            if (days > 1) { cur.k /= days; cur.p /= days; cur.f /= days; cur.c /= days; }
+            const calPct = Math.round((cur.k / targets.kcal) * 100);
+            const periodText = window.analyticsPeriod === 'week' ? 'Неделя' : (window.analyticsPeriod === 'month' ? 'Месяц' : 'День');
 
-            // Белки
-            const proteinPercent = Math.round((cur.p / targets.p) * 100);
-            html += `<div class="glass-card p-4"><p class="text-sm mb-2"><span class="opacity-60">Белки:</span> <span class="font-bold">${Math.round(cur.p)}/${targets.p}г (${proteinPercent}%)</span></p>`;
-            if (proteinPercent < 80) {
-                html += '<p class="text-xs opacity-70">Совет: увеличьте потребление белков (мясо, рыба, яйца)</p>';
-            } else {
-                html += '<p class="text-xs text-green-400">✓ Норма белков достигнута!</p>';
-            }
-            html += '</div>';
-
-            // Жиры
-            const fatPercent = Math.round((cur.f / targets.f) * 100);
-            html += `<div class="glass-card p-4"><p class="text-sm mb-2"><span class="opacity-60">Жиры:</span> <span class="font-bold">${Math.round(cur.f)}/${targets.f}г (${fatPercent}%)</span></p>`;
-            if (fatPercent < 80) {
-                html += '<p class="text-xs opacity-70">Совет: добавьте здоровые жиры (масло, орехи, авокадо)</p>';
-            } else {
-                html += '<p class="text-xs text-green-400">✓ Норма жиров достигнута!</p>';
-            }
-            html += '</div>';
-
-            // Углеводы
-            const carbPercent = Math.round((cur.c / targets.c) * 100);
-            html += `<div class="glass-card p-4"><p class="text-sm mb-2"><span class="opacity-60">Углеводы:</span> <span class="font-bold">${Math.round(cur.c)}/${targets.c}г (${carbPercent}%)</span></p>`;
-            if (carbPercent > 120) {
-                html += '<p class="text-xs opacity-70">Совет: снизьте потребление углеводов</p>';
-            } else if (carbPercent >= 100) {
-                html += '<p class="text-xs text-green-400">✓ Норма углеводов достигнута!</p>';
-            }
-            html += '</div>';
-
-            // Вода
-            const waterPercent = Math.round((waterIntake / targets.water) * 100);
-            html += `<div class="glass-card p-4"><p class="text-sm mb-2"><span class="opacity-60">Вода:</span> <span class="font-bold">${waterIntake}/${targets.water}мл (${waterPercent}%)</span></p>`;
-            if (waterPercent >= 100) {
-                html += '<p class="text-xs text-green-400 achievement">🎉 Поздравляем! Вы достигли нормы воды! Сегодня Вы стали лучше!</p>';
-            } else {
-                html += '<p class="text-xs opacity-70">Осталось ' + Math.round(targets.water - waterIntake) + ' мл</p>';
-            }
-            html += '</div>';
-
-            html += '</div>';
-            container.innerHTML = html;
+            container.innerHTML = `
+                <div class="flex gap-2 mb-6">
+                    <button onclick="setAnalyticsPeriod('day')" class="px-4 py-2 rounded-full ${window.analyticsPeriod === 'day' ? 'bg-white/10 border border-beige/20' : 'opacity-40'} text-[10px] uppercase font-bold">День</button>
+                    <button onclick="setAnalyticsPeriod('week')" class="px-4 py-2 rounded-full ${window.analyticsPeriod === 'week' ? 'bg-white/10 border border-beige/20' : 'opacity-40'} text-[10px] uppercase font-bold">Неделя</button>
+                    <button onclick="setAnalyticsPeriod('month')" class="px-4 py-2 rounded-full ${window.analyticsPeriod === 'month' ? 'bg-white/10 border border-beige/20' : 'opacity-40'} text-[10px] uppercase font-bold">Месяц</button>
+                </div>
+                <div class="glass-card p-5 mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs uppercase opacity-60">Среднее за: ${periodText}</h4>
+                        <span class="text-xs font-bold text-gold">${calPct}%</span>
+                    </div>
+                    <div class="progress-bar mb-2"><div class="progress-fill" style="width: ${Math.min(calPct, 100)}%"></div></div>
+                    <p class="text-sm font-bold">${Math.round(cur.k)} / ${targets.kcal} ккал</p>
+                </div>
+                <div class="glass-card p-5 mb-4">
+                    <h4 class="text-xs uppercase opacity-60 mb-4">Нутриенты (среднее)</h4>
+                    ${renderMacro('Белки', cur.p, targets.p, 'text-blue-300')}
+                    ${renderMacro('Жиры', cur.f, targets.f, 'text-amber-200')}
+                    ${renderMacro('Углеводы', cur.c, targets.c, 'text-green-300')}
+                </div>
+            `;
         }
 
-        function loadUserData(dateKey = getTodayKey()) {
-            const saved = localStorage.getItem('hybrid_user_profile');
-            if (saved) {
-                userProfile = JSON.parse(saved);
-                
-                // Заполняем поля формы в профиле
-                if (document.getElementById('gender')) document.getElementById('gender').value = userProfile.gender;
-                if (document.getElementById('age')) document.getElementById('age').value = userProfile.age;
-                if (document.getElementById('weight')) document.getElementById('weight').value = userProfile.weight;
-                if (document.getElementById('height')) document.getElementById('height').value = userProfile.height;
-                if (document.getElementById('activity')) document.getElementById('activity').value = userProfile.activity;
-                
-                // Показываем блок с целями
-                const targetsEl = document.getElementById('profile-targets');
-                if (targetsEl) {
-                    targetsEl.classList.remove('hidden');
-                    document.getElementById('target-kcal').innerText = userProfile.targets.kcal;
-                    document.getElementById('target-protein').innerText = userProfile.targets.p;
-                    document.getElementById('target-fat').innerText = userProfile.targets.f;
-                    document.getElementById('target-carbs').innerText = userProfile.targets.c;
-                    document.getElementById('target-water').innerText = userProfile.targets.water;
-                }
+        function renderMacro(l, c, t, cls) {
+            const p = Math.round((c / t) * 100);
+            return `<div class="mb-3"><div class="flex justify-between text-[10px] mb-1"><span>${l}</span><span>${Math.round(c)}/${t}г</span></div><div class="progress-bar h-1"><div class="progress-fill ${cls}" style="width: ${Math.min(p, 100)}%; background: currentColor"></div></div></div>`;
+        }
 
-                const savedDiary = localStorage.getItem('hybrid_diary_' + dateKey);
-                diary = savedDiary ? JSON.parse(savedDiary) : [];
-                const savedWater = localStorage.getItem('hybrid_water_' + dateKey);
-                waterIntake = savedWater ? parseFloat(savedWater) : 0;
+        function getTodayKey() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+
+        function loadUserData(dateKey = getTodayKey()) {
+            const profile = localStorage.getItem('hybrid_user_profile');
+            if (profile) {
+                userProfile = JSON.parse(profile);
+                document.getElementById('gender').value = userProfile.gender;
+                document.getElementById('age').value = userProfile.age;
+                document.getElementById('weight').value = userProfile.weight;
+                document.getElementById('height').value = userProfile.height;
+                document.getElementById('activity').value = userProfile.activity;
+                document.getElementById('goal').value = userProfile.goal;
+                showTargets();
+                if(userProfile.isPremium) enablePremium();
             }
+            const diaryData = localStorage.getItem('hybrid_diary_' + dateKey);
+            diary = diaryData ? JSON.parse(diaryData) : [];
+            const waterData = localStorage.getItem('hybrid_water_' + dateKey);
+            waterIntake = waterData ? parseInt(waterData) : 0;
         }
 
         function saveProfile() {
-            const age = document.getElementById('age').value, weight = document.getElementById('weight').value, height = document.getElementById('height').value;
+            const gender = document.getElementById('gender').value, age = parseInt(document.getElementById('age').value), weight = parseFloat(document.getElementById('weight').value), height = parseInt(document.getElementById('height').value), activity = parseFloat(document.getElementById('activity').value), goal = document.getElementById('goal').value;
             if (!age || !weight || !height) { tg.showAlert('Заполните все поля'); return; }
-            userProfile = { gender: document.getElementById('gender').value, age: parseInt(age), weight: parseInt(weight), height: parseInt(height), activity: document.getElementById('activity').value };
-            const bmr = userProfile.gender === 'male' ? (10 * userProfile.weight + 6.25 * userProfile.height - 5 * userProfile.age + 5) : (10 * userProfile.weight + 6.25 * userProfile.height - 5 * userProfile.age - 161);
-            const tdee = bmr * parseFloat(userProfile.activity);
-            userProfile.targets = { 
-                kcal: Math.round(tdee), 
-                p: Math.round(tdee * 0.3 / 4), 
-                f: Math.round(tdee * 0.3 / 9), 
-                c: Math.round(tdee * 0.4 / 4),
-                water: Math.round(userProfile.weight * 35)
-            };
+            const bmr = gender === 'male' ? (10 * weight + 6.25 * height - 5 * age + 5) : (10 * weight + 6.25 * height - 5 * age - 161);
+            let kcal = Math.round(bmr * activity);
+            if (goal === 'lose') kcal -= 500;
+            if (goal === 'gain') kcal += 500;
+            const wasPremium = userProfile ? userProfile.isPremium : false;
+            userProfile = { gender, age, weight, height, activity, goal, targets: { kcal, p: Math.round(weight * 2), f: Math.round(weight * 1), c: Math.round((kcal - (weight * 2 * 4) - (weight * 9)) / 4) }, isPremium: wasPremium };
             localStorage.setItem('hybrid_user_profile', JSON.stringify(userProfile));
-            document.getElementById('profile-targets').classList.remove('hidden');
-            document.getElementById('target-kcal').innerText = userProfile.targets.kcal;
-            document.getElementById('target-protein').innerText = userProfile.targets.p;
-            document.getElementById('target-fat').innerText = userProfile.targets.f;
-            document.getElementById('target-carbs').innerText = userProfile.targets.c;
-            document.getElementById('target-water').innerText = userProfile.targets.water;
-            tg.HapticFeedback.notificationOccurred('success');
-            showTab('dashboard');
+            showTargets();
             updateUI();
+            tg.showAlert('Данные сохранены!');
         }
 
-        function getTodayKey() { return new Date().toISOString().split('T')[0]; }
+        function showTargets() {
+            if (!userProfile) return;
+            const t = userProfile.targets;
+            document.getElementById('target-kcal').innerText = t.kcal;
+            document.getElementById('target-water').innerText = 2000;
+            document.getElementById('target-protein').innerText = t.p;
+            document.getElementById('target-fat').innerText = t.f;
+            document.getElementById('target-carbs').innerText = t.c;
+            document.getElementById('profile-targets').classList.remove('hidden');
+        }
 
         function updateUI() {
-            if (!userProfile) {
-                document.getElementById('calories-left').innerText = '—';
-                document.getElementById('calories-target').innerText = 'Заполни профиль';
-                document.getElementById('water-target').innerText = '—';
-                document.getElementById('water-status').innerText = 'Заполни профиль';
-                return;
-            }
-            const targets = userProfile.targets;
+            if (!userProfile) return;
+            const t = userProfile.targets;
             const cur = diary.reduce((acc, i) => { acc.k += i.k; acc.p += i.p; acc.f += i.f; acc.c += i.c; return acc; }, {k:0, p:0, f:0, c:0});
-            document.getElementById('calories-target').innerText = targets.kcal;
-            document.getElementById('calories-left').innerText = Math.max(0, targets.kcal - Math.round(cur.k));
-            document.getElementById('calories-progress').style.width = Math.min(100, (cur.k / targets.kcal) * 100) + '%';
-            updateMacro('p', cur.p, targets.p); updateMacro('f', cur.f, targets.f); updateMacro('c', cur.c, targets.c);
-            
-            // Water UI
+            document.getElementById('calories-left').innerText = Math.max(0, Math.round(t.kcal - cur.k));
+            document.getElementById('calories-target').innerText = t.kcal;
+            document.getElementById('calories-progress').style.width = Math.min(100, (cur.k / t.kcal) * 100) + '%';
+            updateMacro('p', cur.p, t.p); updateMacro('f', cur.f, t.f); updateMacro('c', cur.c, t.c);
             document.getElementById('water-current').innerText = waterIntake;
-            document.getElementById('water-target').innerText = targets.water;
-            const waterPercent = Math.round((waterIntake / targets.water) * 100);
-            document.getElementById('water-status').innerText = waterPercent >= 100 ? '✓ Норма!' : Math.round(targets.water - waterIntake) + ' мл';
-            
             const waterDrops = document.getElementById('water-drops');
             waterDrops.innerHTML = '';
-            const totalDrops = 8;
-            const mlPerDrop = targets.water / totalDrops;
-            for(let i=1; i<=totalDrops; i++) {
-                const isFilled = waterIntake >= i * mlPerDrop;
-                const svgNS = "http://www.w3.org/2000/svg";
-                const drop = document.createElementNS(svgNS, 'svg');
-                drop.setAttribute('class', `w-6 h-6 water-drop ${isFilled ? 'filled' : 'opacity-20'}`);
-                drop.setAttribute('fill', 'none');
-                drop.setAttribute('stroke', 'currentColor');
-                drop.setAttribute('viewBox', '0 0 24 24');
-                drop.style.cursor = 'pointer';
-                
-                const path = document.createElementNS(svgNS, 'path');
-                path.setAttribute('stroke-linecap', 'round');
-                path.setAttribute('stroke-linejoin', 'round');
-                path.setAttribute('stroke-width', '2');
-                path.setAttribute('d', 'M12 21c-4.418 0-8-3.582-8-8 0-4.418 8-11 8-11s8 6.582 8 11c0 4.418-3.582 8-8 8z');
-                
-                drop.appendChild(path);
-                drop.onclick = () => {
-                    const newAmount = i * mlPerDrop;
-                    if (waterIntake === newAmount && i === 1) {
-                        addWater(0);
-                    } else {
-                        addWater(newAmount);
-                    }
-                };
+            for(let i=1; i<=8; i++) {
+                const drop = document.createElement('div');
+                drop.className = `water-drop ${waterIntake >= i*250 ? 'filled' : ''}`;
+                drop.innerHTML = `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21c-4.418 0-8-3.582-8-8 0-4.418 8-11 8-11s8 6.582 8 11c0 4.418-3.582 8-8 8z"/></svg>`;
+                drop.onclick = () => addWater(i*250);
                 waterDrops.appendChild(drop);
             }
-
             const list = document.getElementById('diary-list');
-            list.innerHTML = diary.length ? '' : `<p class="text-center opacity-40 py-8 text-xs">Дневник на ${currentViewDate === getTodayKey() ? 'сегодня' : currentViewDate} пуст</p>`;
+            list.innerHTML = diary.length ? '' : `<p class="text-center opacity-40 py-8 text-xs">Дневник пуст</p>`;
             diary.forEach((item, idx) => {
                 const el = document.createElement('div');
-                el.className = 'glass-card p-4 flex justify-between items-center';
-                el.innerHTML = `<div><p class="font-semibold text-sm">${item.name} (${item.w}г)</p><p class="text-[10px] opacity-50 uppercase">${Math.round(item.k)} ккал | Б:${Math.round(item.p)} Ж:${Math.round(item.f)} У:${Math.round(item.c)}</p></div>` + 
-                    (currentViewDate === getTodayKey() ? `<button onclick="removeItem(${idx})" class="opacity-30 p-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>` : '');
+                el.className = 'glass-card p-4 flex justify-between items-center border border-white/5';
+                el.innerHTML = `<div><p class="font-semibold text-sm">${item.name}</p><p class="text-[10px] opacity-50 uppercase">${Math.round(item.k)} ккал | Б:${Math.round(item.p)} Ж:${Math.round(item.f)} У:${Math.round(item.c)}</p></div><button onclick="removeItem(${idx})" class="opacity-30 p-2">✕</button>`;
                 list.appendChild(el);
             });
         }
 
-        function addWater(amount) {
-            waterIntake = amount;
-            localStorage.setItem('hybrid_water_' + currentViewDate, waterIntake);
-            updateUI();
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
+        function addWater(a) { waterIntake = a; localStorage.setItem('hybrid_water_' + currentViewDate, waterIntake); updateUI(); }
         function updateMacro(id, cur, tar) {
             document.getElementById(id + '-current').innerText = Math.round(cur);
             document.getElementById(id + '-target').innerText = tar;
             document.getElementById(id + '-progress').style.width = Math.min(100, (cur / tar) * 100) + '%';
         }
-
         function removeItem(idx) { diary.splice(idx, 1); localStorage.setItem('hybrid_diary_' + currentViewDate, JSON.stringify(diary)); updateUI(); }
-
         function recalcManual() {
-            const w = parseFloat(document.getElementById('m-weight').value) || 0;
-            const k = parseFloat(document.getElementById('m-k').value) || 0;
+            const w = parseFloat(document.getElementById('m-weight').value) || 0, k = parseFloat(document.getElementById('m-k').value) || 0;
             document.getElementById('m-total').innerText = Math.round((k * w) / 100) + ' ккал';
         }
-
         function saveManual() {
             const name = document.getElementById('m-name').value, w = parseFloat(document.getElementById('m-weight').value), k = parseFloat(document.getElementById('m-k').value);
-            if (!name || isNaN(w) || isNaN(k)) { tg.showAlert('Укажите название, вес и калории'); return; }
+            if (!name || isNaN(w) || isNaN(k)) { tg.showAlert('Заполните поля'); return; }
             const p = parseFloat(document.getElementById('m-p').value) || 0, f = parseFloat(document.getElementById('m-f').value) || 0, c = parseFloat(document.getElementById('m-c').value) || 0;
             diary.unshift({ name, w, k: (k * w) / 100, p: (p * w) / 100, f: (f * w) / 100, c: (c * w) / 100 });
             localStorage.setItem('hybrid_diary_' + currentViewDate, JSON.stringify(diary));
-            ['m-name', 'm-k', 'm-p', 'm-f', 'm-c'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('m-name').value = '';
             document.getElementById('m-weight').value = 100;
-            document.getElementById('m-total').innerText = '0 ккал';
-            tg.HapticFeedback.notificationOccurred('success');
-            showTab('dashboard');
+            document.getElementById('m-k').value = '';
+            document.getElementById('m-p').value = '';
+            document.getElementById('m-f').value = '';
+            document.getElementById('m-c').value = '';
+            showTab('dashboard'); 
             updateUI();
         }
+        
+        // ============================================================
+        // НОВЫЙ ФУНКЦИОНАЛ СПИСКА ПОКУПОК
+        // ============================================================
 
-        async function checkSubscription() {
-            const userId = tg.initDataUnsafe?.user?.id;
-            if (!userId) return;
-            try {
-                const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${CHANNEL_ID}&user_id=${userId}`);
-                const data = await res.json();
-                if (data.ok && !['member', 'administrator', 'creator'].includes(data.result.status)) {
-                    document.getElementById('sub-overlay').classList.remove('hidden');
-                } else {
-                    document.getElementById('sub-overlay').classList.add('hidden');
-                }
-            } catch (e) { console.error(e); }
+        // Категории продуктов для группировки
+        const SHOP_CATEGORIES = {
+            'Мясо / Птица': ['Индейка филе', 'Куриная грудка (сырая)', 'Куриная грудка (отварная)'],
+            'Рыба / Морепродукты': ['Минтай филе', 'Тунец консервированный'],
+            'Молочные продукты': ['Творог 5%', 'Йогурт натуральный', 'Молоко 2.5%'],
+            'Крупы / Злаки': ['Овсянка', 'Дикий рис', 'Киноа', 'Нут отварной'],
+            'Овощи / Фрукты': ['Брокколи', 'Огурец', 'Болгарский перец', 'Банан', 'Яблоко', 'Голубика', 'Салат листовой'],
+            'Яйца': ['Яйцо куриное (1 шт)'],
+            'Хлеб / Выпечка': ['Хлеб ржаной', 'Авокадо'],
+            'Орехи / Семена': ['Миндаль', 'Грецкий орех', 'Семена чиа', 'Семена льна'],
+            'Масла / Соусы': ['Масло подсолнечное'],
+            'Спортпит': ['Протеин (порция 30г)']
+        };
+
+        function getCategoryForItem(name) {
+            for (let cat in SHOP_CATEGORIES) {
+                if (SHOP_CATEGORIES[cat].includes(name)) return cat;
+            }
+            // Автоопределение по ключевым словам
+            const n = name.toLowerCase();
+            if (n.includes('индейк') || n.includes('курин') || n.includes('говяд') || n.includes('свин') || n.includes('фарш') || n.includes('филе инд')) return 'Мясо / Птица';
+            if (n.includes('лосось') || n.includes('тунец') || n.includes('минтай') || n.includes('рыб') || n.includes('креветк')) return 'Рыба / Морепродукты';
+            if (n.includes('творог') || n.includes('йогурт') || n.includes('молоко') || n.includes('кефир') || n.includes('сыр')) return 'Молочные продукты';
+            if (n.includes('овсян') || n.includes('рис') || n.includes('киноа') || n.includes('нут') || n.includes('чечевиц') || n.includes('гречка')) return 'Крупы / Злаки';
+            if (n.includes('яйцо')) return 'Яйца';
+            if (n.includes('хлеб') || n.includes('тост') || n.includes('авокадо')) return 'Хлеб / Выпечка';
+            if (n.includes('миндал') || n.includes('орех') || n.includes('семен') || n.includes('чиа') || n.includes('льн')) return 'Орехи / Семена';
+            if (n.includes('масло') || n.includes('масла')) return 'Масла / Соусы';
+            if (n.includes('протеин')) return 'Спортпит';
+            if (n.includes('броккол') || n.includes('огурец') || n.includes('перец') || n.includes('кабач') || n.includes('банан') || n.includes('яблок') || n.includes('салат') || n.includes('шпинат')) return 'Овощи / Фрукты';
+            return 'Прочее';
         }
+
+        function buildShoppingItems(mealsCount, period) {
+            const mult = period === 'week' ? 7 : 1;
+            const plan = buildPlanForCount(mealsCount);
+            let items = {};
+            plan.meals.forEach(m => {
+                const r = RECIPES[m.c];
+                if (r && r.i) {
+                    for (let ing in r.i) {
+                        items[ing] = (items[ing] || 0) + (r.i[ing] * mult);
+                    }
+                }
+            });
+            return items;
+        }
+
+        function buildPlanForCount(count) {
+            const breakfast = ["Овсяная каша с ягодами и миндалем", "Скрэмбл с авокадо и цельнозерновым тостом", "Творог 5% с грецким орехом и семенами чиа"];
+            const lunch = ["Стейк из индейки с брокколи на пару", "Запеченный минтай с диким рисом", "Куриное филе с киноа и овощами"];
+            const dinner = ["Салат с тунцом и нутом", "Зеленый салат с яйцом пашот", "Стейк из индейки с брокколи на пару"];
+            const snacks = ["Греческий йогурт с семенами льна", "Протеиновый смузи с бананом", "Запеченное яблоко с творогом", "Горсть орехов (миндаль/фундук)"];
+            let meals = [];
+            if (count == 3) meals = [{t:"Завтрак",c:breakfast[0]},{t:"Обед",c:lunch[0]},{t:"Ужин",c:dinner[0]}];
+            else if (count == 4) meals = [{t:"Завтрак",c:breakfast[0]},{t:"Обед",c:lunch[0]},{t:"Перекус",c:snacks[0]},{t:"Ужин",c:dinner[0]}];
+            else if (count == 5) meals = [{t:"Завтрак",c:breakfast[0]},{t:"Перекус 1",c:snacks[0]},{t:"Обед",c:lunch[0]},{t:"Перекус 2",c:snacks[1]},{t:"Ужин",c:dinner[0]}];
+            else if (count == 6) meals = [{t:"Завтрак",c:breakfast[0]},{t:"Перекус 1",c:snacks[0]},{t:"Обед",c:lunch[0]},{t:"Перекус 2",c:snacks[1]},{t:"Ужин",c:dinner[0]},{t:"Поздний ужин",c:snacks[2]}];
+            return { meals };
+        }
+
+        function setShopMeals(n) {
+            window.shopMealsCount = n;
+            // Сбрасываем отметки при смене плана
+            window.shopChecked = {};
+            renderShoppingList();
+        }
+
+        function setShopPeriodNew(p) {
+            window.shopPeriodNew = p;
+            // Сбрасываем отметки при смене периода
+            window.shopChecked = {};
+            renderShoppingList();
+        }
+
+        function toggleShopItem(name) {
+            window.shopChecked[name] = !window.shopChecked[name];
+            // Обновляем только визуальное состояние конкретного элемента
+            const el = document.querySelector(`[data-shop-item="${CSS.escape(name)}"]`);
+            if (el) {
+                if (window.shopChecked[name]) {
+                    el.classList.add('checked');
+                    el.querySelector('.shop-checkbox').innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+                } else {
+                    el.classList.remove('checked');
+                    el.querySelector('.shop-checkbox').innerHTML = '';
+                }
+                updateShopProgress();
+            }
+        }
+
+        function updateShopProgress() {
+            const total = Object.keys(window.shopChecked).length;
+            const checked = Object.values(window.shopChecked).filter(Boolean).length;
+            // Считаем общее количество позиций в списке
+            const items = buildShoppingItems(window.shopMealsCount, window.shopPeriodNew);
+            const totalItems = Object.keys(items).length;
+            const pct = totalItems > 0 ? Math.round((checked / totalItems) * 100) : 0;
+            const progressFill = document.getElementById('shop-progress-fill');
+            const progressText = document.getElementById('shop-progress-text');
+            if (progressFill) progressFill.style.width = pct + '%';
+            if (progressText) progressText.textContent = checked + ' / ' + totalItems;
+        }
+
+        function clearCheckedItems() {
+            window.shopChecked = {};
+            renderShoppingList();
+        }
+
+        function renderShoppingList() {
+            const mc = window.shopMealsCount;
+            const period = window.shopPeriodNew;
+
+            // Обновляем кнопки приёмов
+            [3,4,5,6].forEach(n => {
+                const btn = document.getElementById('shop-mc-' + n);
+                if (btn) {
+                    btn.classList.toggle('active', n === mc);
+                }
+            });
+
+            // Обновляем кнопки периода
+            const dayBtn = document.getElementById('shop-p-day');
+            const weekBtn = document.getElementById('shop-p-week');
+            if (dayBtn) dayBtn.classList.toggle('active', period === 'day');
+            if (weekBtn) weekBtn.classList.toggle('active', period === 'week');
+
+            // Строим список продуктов
+            const items = buildShoppingItems(mc, period);
+            const container = document.getElementById('shop-list-container');
+            if (!container) return;
+
+            // Группируем по категориям
+            const grouped = {};
+            for (let name in items) {
+                const cat = getCategoryForItem(name);
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push({ name, amount: items[name] });
+            }
+
+            // Сортируем продукты внутри категорий по алфавиту
+            for (let cat in grouped) {
+                grouped[cat].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+            }
+
+            container.innerHTML = '';
+
+            const periodLabel = period === 'week' ? 'на неделю' : 'на день';
+            const planLabel = `${mc} приёма в день`;
+
+            // Заголовок списка
+            const header = document.createElement('div');
+            header.className = 'mb-4 flex items-center justify-between';
+            header.innerHTML = `
+                <p class="text-xs opacity-50">${planLabel} &bull; ${periodLabel}</p>
+                <p class="text-xs font-bold" style="color:var(--color-gold)">${Object.keys(items).length} позиций</p>
+            `;
+            container.appendChild(header);
+
+            // Рендерим категории
+            const catOrder = ['Мясо / Птица', 'Рыба / Морепродукты', 'Молочные продукты', 'Яйца', 'Крупы / Злаки', 'Овощи / Фрукты', 'Хлеб / Выпечка', 'Орехи / Семена', 'Масла / Соусы', 'Спортпит', 'Прочее'];
+            const sortedCats = [...new Set([...catOrder, ...Object.keys(grouped)])].filter(c => grouped[c]);
+
+            sortedCats.forEach(cat => {
+                const catItems = grouped[cat];
+                if (!catItems || catItems.length === 0) return;
+
+                const catEl = document.createElement('div');
+                catEl.className = 'glass-card p-4 mb-3';
+
+                const catTitle = document.createElement('div');
+                catTitle.className = 'shop-category-title';
+                catTitle.textContent = cat;
+                catEl.appendChild(catTitle);
+
+                catItems.forEach(({ name, amount }) => {
+                    let v = amount, u = 'г';
+                    if (v >= 1000) { v = (v / 1000).toFixed(2); u = 'кг'; } else { v = Math.round(v); }
+                    const amountStr = `${v} ${u}`;
+
+                    const isChecked = !!window.shopChecked[name];
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'shop-item' + (isChecked ? ' checked' : '');
+                    itemEl.setAttribute('data-shop-item', name);
+                    itemEl.onclick = () => toggleShopItem(name);
+                    itemEl.innerHTML = `
+                        <div class="shop-checkbox">${isChecked ? '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}</div>
+                        <span class="item-label">${name}</span>
+                        <span class="item-amount">${amountStr}</span>
+                    `;
+                    catEl.appendChild(itemEl);
+                });
+
+                container.appendChild(catEl);
+            });
+
+            // Обновляем прогресс-бар
+            const checked = Object.values(window.shopChecked).filter(Boolean).length;
+            const totalItems = Object.keys(items).length;
+            const pct = totalItems > 0 ? Math.round((checked / totalItems) * 100) : 0;
+            const progressFill = document.getElementById('shop-progress-fill');
+            const progressText = document.getElementById('shop-progress-text');
+            if (progressFill) progressFill.style.width = pct + '%';
+            if (progressText) progressText.textContent = checked + ' / ' + totalItems;
+        }
+
+        // ============================================================
+        // КОНЕЦ ФУНКЦИЙ СПИСКА ПОКУПОК
+        // ============================================================
 
         window.onload = init;
     </script>
