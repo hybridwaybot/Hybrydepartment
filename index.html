@@ -68,7 +68,7 @@
             <svg class="w-10 h-10 text-gold" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
         </div>
         <h2 class="text-3xl mb-4 text-beige font-bold">Гибридный цех</h2>
-        <p class="mb-8 opacity-70 text-beige">Для доступа к системе и премиум-функциям необходимо быть подписанным на наш канал.</p>
+        <p class="mb-8 opacity-70 text-beige">Для доступа к системе и функциям необходимо быть подписанным на наш канал.</p>
         <a href="https://t.me/hybriddepartment" target="_blank" class="btn-primary py-4 px-8 rounded-full w-full mb-4 text-center block">Подписаться на канал</a>
         <button onclick="checkSubscription(true)" class="text-beige border border-beige/30 py-3 px-8 rounded-full w-full">Я подписался, войти</button>
     </div>
@@ -195,7 +195,7 @@
                 <div class="pt-6 border-t border-white/10">
                     <button onclick="checkSubscription(true)" class="w-full py-3 rounded-xl border border-gold/30 text-gold text-[10px] uppercase font-bold tracking-widest flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-                        Проверить подписку / Обновить Premium
+                        Доступно только подписчикам канала
                     </button>
                 </div>
             </div>
@@ -687,7 +687,7 @@
                 if (isSubscribed) {
                     document.getElementById('sub-overlay').classList.add('hidden');
                     enablePremium();
-                    if(force) tg.showAlert("Подписка подтверждена! Premium дизайн активирован.");
+                    if(force) tg.showAlert("Подписка подтверждена! Добро пожаловать!.");
                 } else {
                     document.getElementById('sub-overlay').classList.remove('hidden');
                     disablePremium();
